@@ -1,5 +1,9 @@
 #ifndef NUMERICAL_SIMULATION_KERNEL_HEADER
 #define NUMERICAL_SIMULATION_KERNEL_HEADER
 
+typedef enum operator_type {
+	GE, GT, LE, LT
+} OPERATOR_TYPE; 
+
 
 #endif
