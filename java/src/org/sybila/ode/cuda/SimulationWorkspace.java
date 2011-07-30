@@ -42,6 +42,45 @@ public class SimulationWorkspace {
 
 	private CUdeviceptr executedSteps;
 
+	private CudaSimulationFilterGuards	guards;
+
+
+	private void initTestGuards() {
+		float[] 	guards;
+		int[]		guardsIndexes;
+
+		guards = new float[5];
+		guards[0] = 1.00f;
+		guards[1] = 1.01f;
+		guards[2] = 1.03f;
+		guards[3] = 1.04f;
+		guards[4] = 1.05f;
+
+		guardsIndexes = new int[20]; /* just two dimensions, though */
+		guardsIndexes[0] = 0;
+		guardsIndexes[1] = 0;
+		guardsIndexes[2] = 0;
+		guardsIndexes[3] = 2;
+		guardsIndexes[4] = 3; /* in 3rd dimension, guards start at 3rd and end at 4th index */
+		guardsIndexes[5] = 4;
+		guardsIndexes[6] = 0;
+		guardsIndexes[7] = 0;
+		guardsIndexes[8] = 0;
+		guardsIndexes[9] = 0;
+		guardsIndexes[10] = 0;
+		guardsIndexes[11] = 0;
+		guardsIndexes[12] = 0;
+		guardsIndexes[13] = 0;
+		guardsIndexes[14] = 0;
+		guardsIndexes[15] = 0;
+		guardsIndexes[16] = 0;
+		guardsIndexes[17] = 0;
+		guardsIndexes[18] = 0;
+		guardsIndexes[19] = 0;
+		this.guards = new CudaSimulationFilterGuards(this.dimension, guards, guardsIndexes, this.stream);
+	}
+
+
 	public SimulationWorkspace(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function, cudaStream_t stream) {
 		this(dimension, maxNumberOfSimulations, maxSimulationSize, function);
 		if (stream == null) {
@@ -67,6 +106,8 @@ public class SimulationWorkspace {
 		this.maxSimulationSize		= maxSimulationSize;
 		this.maxNumberOfSimulations	= maxNumberOfSimulations;
 		this.function				= function;
+		/* TODO: hardcoded stuff here */
+		initTestGuards();
 	}
 
 	public Pointer getDeviceExecutedSteps() {
@@ -124,6 +165,10 @@ public class SimulationWorkspace {
 
 	public int getMaxSimulationSize() {
 		return maxSimulationSize;
+	}
+
+	public CudaSimulationFilterGuards getFilterGuards() {
+		return guards;
 	}
 
 	public SimulationResult getResult(int numberOfSimulations) {

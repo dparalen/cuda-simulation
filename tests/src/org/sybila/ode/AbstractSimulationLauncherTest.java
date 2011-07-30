@@ -54,10 +54,10 @@ public abstract class AbstractSimulationLauncherTest
 		for (int sim=0; sim<simulations.length; sim++) {
 			assertTrue(simulations[sim].getLength() >= Math.min(1000, SIMULATION_LENGTH));
 			for(int i=0; i<Math.min(simulations[sim].getLength(), 10); i++) {
-//				System.out.println(simulations[sim].getPoint(i));
+				System.out.println(simulations[sim].getPoint(i));
 				assertEquals("Time assertion in simulation [" + sim + "] step [" + i + "] failed.", (float) (1 * i + 1), simulations[sim].getPoint(i).getTime(), (float) 1);
 			}
-//			System.out.println();
+			System.out.println();
 		}
 	
     }

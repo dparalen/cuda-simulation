@@ -31,11 +31,11 @@
 	</target>
 
 	<target name="build" depends="init">
-		<javac fork="true" srcdir="${java.src.dir}" destdir="${java.build.dir}" classpathref="classpath" debug="on" debuglevel="lines,source"/>
+		<javac includeantruntime="false" fork="true" srcdir="${java.src.dir}" destdir="${java.build.dir}" classpathref="classpath" debug="on" debuglevel="lines,source"/>
 	</target>
 
 	<target name="build-tests" depends="build">
-		<javac fork="true" srcdir="${tests.src.dir}" destdir="${tests.build.dir}" classpathref="classpath" debug="on" debuglevel="lines,source"/>
+		<javac includeantruntime="false" fork="true" srcdir="${tests.src.dir}" destdir="${tests.build.dir}" classpathref="classpath" debug="on" debuglevel="lines,source"/>
 	</target>
 
 	<target name="test" depends="build-tests">

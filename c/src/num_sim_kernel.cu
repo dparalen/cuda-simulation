@@ -51,6 +51,9 @@
  * before being processed any further. This happens in order
  * to minimize the space required for a trace storage as well as
  * to minimize the number of cycles of further processing on CPU
+
+ * Please note that just the`>' inequality is checked here
+ * should be legitimate: TODO: prove
 */
 
 /* some LIMITs on the amount of guards that can be used */
@@ -70,19 +73,6 @@
 #define _GT(a, b) ((a) > (b))
 #define _LE(a, b) ((a) <= (b))
 #define _LT(a, b) ((a) < (b))
-/* a guard structure */
-struct guard {
-	size_t		dimension_id;	/* the dimension */
-	float		value;		/* the guard value */
-};
-
-
-/* a structure storing all the guards */
-/* it rather might be stored in a global space if more guards are needed */
-static __constant__  __device__ struct {
-	struct guard 	guards[_MAX_GUARDS];
-	size_t		guards_len;
-} FILTER_GUARDS;
 
 static __device__ __shared__ struct {
 	/* array of vectors (per block) that changed 
@@ -121,25 +111,73 @@ static __device__ __shared__ struct {
 	_FILTER_CHECKED_VECTOR(simulation_id)
 
 
+/* the begin index of a dimension's guards 
+ * dimension_id == _ID_IN_BLOCK % dimensions
+ * begin index == 2d, d is a dimension's index 
+*/
+#define _FILTER_GUARD_DIM_BEGIN(guards_indexes) \
+	(guards_indexes[2 * \
+		(_ID_IN_BLOCK % FILTER_CHECKED_VECTORS.config.dimensions) \
+	])
+/* the end index if a dimension's guards
+ * end index == 2d + 1, d is a dimension's index
+*/
+#define _FILTER_GUARD_DIM_END(guards_indexes) \
+	(guards_indexes[2 * \
+		(_ID_IN_BLOCK % FILTER_CHECKED_VECTORS.config.dimensions) \
+	+ 1])
+
+#define _FILTER_IDX_IN_DIMENSION_GUARDS(i, guards_indexes) \
+	((_FILTER_GUARD_DIM_BEGIN(guards_indexes) <= (i)) && \
+	(_FILTER_GUARD_DIM_END(guards_indexes) >= (i)))
+
 /* initialize VECTOR FILTER; on-device part */
 static __device__ void
-filterDeviceInit (
+filterInitSharedStuff (
+	const float vectentry,
 	const size_t dimensions,
-	const size_t simulations_per_block
+	const size_t simulations_per_block,
+	const float* guards,
+	const size_t guards_len,
+	const size_t* guards_indexes
 ){
-	/* for threads within the vector--block size range
-	 * init vector change state with false */
-	if (threadIdx.y * blockDim.x + threadIdx.x  < \
-		simulations_per_block * dimensions)
-	{
-		FILTER_CHECKED_VECTORS.vector \
-			[threadIdx.y * blockDim.x + threadIdx.x] = false;
-	}	
+	/* for threads within the vector--block size range,
+	 * init vector change state in order not
+	 * to lose any points e.g. if no guards were
+	 * specified
+	*/
+	if (_ID_IN_BLOCK < simulations_per_block * dimensions) {
+		/* each thread up to the amount of vectors processed
+		 * in a block set the initial "change" based on the
+		 * "amount" of guards i.e. no guards, no filtering,
+		 * all the vectors always change
+		*/
+		FILTER_CHECKED_VECTORS.vector[_ID_IN_BLOCK] = \
+			guards_len == 0;
+	}
+	if (_ID_IN_BLOCK < FILTER_CHECKED_VECTORS.config.dimensions) {
+		/* the filtering base step; initialize "old" values
+		 * based on a comparision with the initial vector
+		*/
+
+		for (register size_t i = 0; i < guards_len; i++) {
+			if( _FILTER_IDX_IN_DIMENSION_GUARDS(i, guards_indexes) ){
+				/* in case the dimension fits, initialize */
+				_FILTER_DIM_OLD_VALUE |= guards[i] > \
+					vectentry;
+				__threadfence_block();
+			}
+			__syncthreads();
+		}
+	}
 	/* stuff to be initialized only by the "first" thread */
-	if(threadIdx.x != 0 || threadIdx.y != 0) return;
-	FILTER_CHECKED_VECTORS.config.dimensions = dimensions;
-	FILTER_CHECKED_VECTORS.config.simulations_per_block = \
-		simulations_per_block;
+	if(threadIdx.x == 0 && threadIdx.y == 0) {
+		FILTER_CHECKED_VECTORS.config.dimensions = dimensions;
+		FILTER_CHECKED_VECTORS.config.simulations_per_block = \
+			simulations_per_block;
+	}
+	__threadfence_block();
+	__syncthreads();
 }
 
 /* evaluate and check the state of a vector entry
@@ -158,10 +196,21 @@ filterVectorEntryCheck (
 
 	/* the index of a simulation trace being computed */
 	const size_t
-		simulation_index
+		simulation_index,
+
+	/* the guard values to check */
+	const float*
+		guards,
+
+	const size_t
+		guards_len,
+
+	/* the indexes of the guards array, tere is always
+	 * 2*dimensions of elements here
+	*/
+	const size_t*
+		guards_indexes
 ){
-#define FS (FILTER_STATE)
-#define FG (FILTER_GUARDS)
 
 	register unsigned short ret = false;
 	register size_t		i = 0;
@@ -173,37 +222,23 @@ filterVectorEntryCheck (
 	 * evaluation, a new "state" is entered with regard to trace
 	 * model-checking
 	*/
-	/* please note that just the`>' inequality is checked here
-	 * should be legitimate: TODO: prove
-        */
-	if (_ID_IN_BLOCK < FILTER_CHECKED_VECTORS.config.dimensions) {
-		/* the base step; initialize "old" values */
-		for ( i = 0; i < FG.guards_len ; i++) {
-			if (dimension_id == FG.guards[i].dimension_id) {
-				/* in case the dimension fits, initialize */
-				_FILTER_DIM_OLD_VALUE |= FG.guards[i].value > \
-					vectentry;
-			}
+	/* induction step */
+	for(i = 0; i < guards_len; i++) {
+		if(_FILTER_IDX_IN_DIMENSION_GUARDS(i, guards_indexes)){
+			/* in case the dimension fits, check&update */
+			ret |= ((vectentry > guards[i]) ^ \
+				_FILTER_DIM_OLD_VALUE);
+			_FILTER_DIM_OLD_VALUE |= vectentry > \
+				guards[i];
+			__threadfence_block();
 		}
-		/* first trace is always a change---prevents information loss*/
-		ret = true;
-	} else {
-		/* induction step */
-		for(i = 0; i < FG.guards_len; i++) {
-			if (dimension_id == FG.guards[i].dimension_id) {
-				/* in case the dimension fits, check&update */
-				ret |= ((vectentry > FG.guards[i].value) ^ \
-					_FILTER_DIM_OLD_VALUE);
-				_FILTER_DIM_OLD_VALUE |= vectentry > \
-					FG.guards[i].value;
-			}
-		}
+		__syncthreads();
 	}
 	/* update the status for the whole vector */
 	FILTER_CHECKED_VECTORS.vector \
 		[_FILTER_CHECKED_VECTOR_IDX(simulation_index)] |= ret;
-#undef FG
-#undef FS
+	__threadfence_block();
+	__syncthreads();
 }
 
 __device__ void ode_function(
@@ -246,29 +281,29 @@ void __global__ rkf45_kernel(
 	const int*	function_coefficient_indexes,
 	const int*	function_factors,
 	const int*	function_factor_indexes,
+
+	/* float values of particular guards; 
+	 * each dimension has a continuous "slot"
+	*/
+	const float*	guards,
+	const size_t	guards_len,
+	/* begin and end index of each dimension slot is stored for
+	 * each dimension, i.e. there is 2*dimensions elements here
+	 */
+	const size_t* 	guards_indexes,
+
 	float* 		result_points,
 	float*		result_times,
 	int*		number_of_executed_steps,
 	int*		return_code
 ) {
 	// compute the number of simulations per block
-	__shared__ int simulations_per_block;
-	if (threadIdx.x == 0 && threadIdx.y == 0) {
-		simulations_per_block = (blockDim.x * blockDim.y) / vector_size;
-	}
-	__threadfence_block();
-	__syncthreads();
-
-#ifdef WITH_FILTERING
-	filterDeviceInit(vector_size, simulations_per_block);
-	__threadfence_block();
-	__syncthreads();
-#endif
+	int simulations_per_block = (int) (blockDim.x * blockDim.y) / vector_size;
 
 	// compute the id within the block
 	/* blockDim is the "size" of a Block within the Grid */
-	int id_in_block = threadIdx.y * blockDim.x + threadIdx.x;
 
+	int id_in_block = _ID_IN_BLOCK ;
 	// if the thread can't compute any simulation, exit
 	if (id_in_block >= vector_size * simulations_per_block) return;
 
@@ -281,6 +316,12 @@ void __global__ rkf45_kernel(
 
 	// compute index of dimension
 	int dimension_id  = id_in_block % vector_size;
+
+	// initialize the filtering --- shared (memory) stuff and initial change evaluation
+	filterInitSharedStuff(vectors[vector_size * simulation_id + dimension_id], vector_size, simulations_per_block,\
+		guards, guards_len, guards_indexes);
+
+	__syncthreads();
 
 	// reset number of executed steps and set the default time step
 	number_of_executed_steps[simulation_id] = 0;	
@@ -403,19 +444,15 @@ void __global__ rkf45_kernel(
 				vector[dimension_id] = dim_result;
 				if (current_time >= time_step * (position+1)) {
 					result_times[simulation_id * simulation_max_size + position] = current_time;
-#ifdef WITH_FILTERING
-					filterVectorEntryCheck(vector[dimension_id], dimension_id, simulation_id);
+					filterVectorEntryCheck(vector[dimension_id], dimension_id, simulation_id, guards, guards_len, guards_indexes);
 					__threadfence_block();
 					__syncthreads();
 
 					if ( _FILTER_VECTOR_CHANGED(simulation_id) ) {
 						/* save new point only if vector change detected */
-						/* a reduct per all the dimensions --- all thread observe same value */
+						/* a reduct per all the dimensions --- all threads observe same value */
 						position++;
 					}
-#else
-					position++;
-#endif
 					vector = &(result_points[(simulation_max_size + 1) * vector_size * simulation_id  + vector_size * position]);
 					vector[dimension_id] = dim_result;
 					if (error <= min_abs_divergency) {
