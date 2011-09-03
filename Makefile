@@ -3,7 +3,7 @@ SRCFILE=num_sim_kernel.cu
 BUILDDIR=c/build
 OUTFILE=num_sim_kernel.cubin
 DEBUG_FLAGS=-G -g -keep
-FLAGS=-O2 -gencode=arch=compute_20,code=\"sm_20\" -gencode=arch=compute_20,code=\"sm_20\"
+FLAGS=-O2 -gencode=arch=compute_20,code=\"sm_21\" -gencode=arch=compute_20,code=\"sm_21\"
 CPPFFLAGS="-DWITH_FILTERING"
 CUBIN_FLAGS=-cubin
 CC=nvcc

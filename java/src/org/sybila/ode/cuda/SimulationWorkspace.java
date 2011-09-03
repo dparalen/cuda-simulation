@@ -9,6 +9,7 @@ import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaError;
 import jcuda.runtime.cudaMemcpyKind;
 import jcuda.runtime.cudaStream_t;
+import jcuda.driver.*;
 
 public class SimulationWorkspace {
 
@@ -44,10 +45,14 @@ public class SimulationWorkspace {
 
 	private CudaSimulationFilterGuards	guards;
 
+	private CUcontext cudaContext;
+
+	private CUdevice cudaDevice;
+
 
 	private void initTestGuards() {
-		float[] 	guards;
-		int[]		guardsIndexes;
+		float[] 	guards, emptyGuards;
+		int[]		guardsIndexes, emptyIndexes;
 
 		guards = new float[5];
 		guards[0] = 1.00f;
@@ -77,9 +82,26 @@ public class SimulationWorkspace {
 		guardsIndexes[17] = 0;
 		guardsIndexes[18] = 0;
 		guardsIndexes[19] = 0;
+		emptyGuards = new float [0];
+		emptyIndexes = new int [0];
+
 		this.guards = new CudaSimulationFilterGuards(this.dimension, guards, guardsIndexes, this.stream);
+		//this.guards = new CudaSimulationFilterGuards();
 	}
 
+	private void initDevice() {
+		/* initialize the CUDA system 
+		 * thanks to: http://forum.byte-welt.de/showthread.php?t=2621
+		*/
+		JCudaDriver.setLogLevel(jcuda.LogLevel.LOG_DEBUGTRACE);
+		JCudaDriver.setExceptionsEnabled(true);
+		JCudaDriver.cuInit(0);
+		this.cudaContext = new CUcontext();
+		this.cudaDevice = new CUdevice();
+		JCudaDriver.cuDeviceGet(this.cudaDevice, 0);
+		JCudaDriver.cuCtxCreate(this.cudaContext, 0, this.cudaDevice);
+
+	}
 
 	public SimulationWorkspace(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function, cudaStream_t stream) {
 		this(dimension, maxNumberOfSimulations, maxSimulationSize, function);
@@ -106,6 +128,9 @@ public class SimulationWorkspace {
 		this.maxSimulationSize		= maxSimulationSize;
 		this.maxNumberOfSimulations	= maxNumberOfSimulations;
 		this.function				= function;
+
+		initDevice();	
+		
 		/* TODO: hardcoded stuff here */
 		initTestGuards();
 	}
@@ -169,6 +194,14 @@ public class SimulationWorkspace {
 
 	public CudaSimulationFilterGuards getFilterGuards() {
 		return guards;
+	}
+
+	public CUdevice getDevice() {
+		return cudaDevice;
+	}
+
+	public CUcontext getContext() {
+		return cudaContext;
 	}
 
 	public SimulationResult getResult(int numberOfSimulations) {

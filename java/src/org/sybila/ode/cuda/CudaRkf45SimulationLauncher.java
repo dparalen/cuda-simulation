@@ -27,6 +27,4 @@ public class CudaRkf45SimulationLauncher extends AbstractCudaSimulationLauncher
 	protected String getKernelName() {
 		return KERNEL_NAME;
 	}
-
-
 }

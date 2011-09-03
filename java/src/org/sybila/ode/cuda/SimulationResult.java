@@ -20,7 +20,7 @@ public class SimulationResult implements org.sybila.ode.SimulationResult
 
 	public SimulationResult(int numberOfSimulations, int dimension, int[] numberOfExecutedSteps, int[] returnCodes, float[] simulationTimes, float[] simulationPoints) {
 		if (numberOfSimulations <= 0) {
-			throw new IllegalArgumentException("The number of simulations has to be a positive number.");
+			throw new IllegalArgumentException("The number of simulations has to be a positive number: " + numberOfSimulations);
 		}
 		if (dimension <= 0) {
 			throw new IllegalArgumentException("The size of vector has to be a positive number.");

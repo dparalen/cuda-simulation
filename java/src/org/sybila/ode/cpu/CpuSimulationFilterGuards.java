@@ -27,8 +27,9 @@ public class CpuSimulationFilterGuards
 		guards = this.getGuards();
 		int begin = guardsIndexes[2 * dimensionId];
 		int end = guardsIndexes[2 * dimensionId + 1];
-		float[] ret = new float[end - begin];
+		float[] ret = new float[end - begin + 1];
 		for(int i = begin; i <= end; i++){
+			//System.out.println("b: " + begin + ", e: " + end);
 			ret[i - begin] = guards[i];
 		}
 		return ret;

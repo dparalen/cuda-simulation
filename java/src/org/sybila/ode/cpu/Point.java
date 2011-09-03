@@ -12,12 +12,6 @@ public class Point implements org.sybila.ode.Point
 	private float time;
 
 	public Point(int dimension, float time, float[] data) {
-		if (dimension <= 0) {
-			throw new IllegalArgumentException("The dimension of the point has to be a positive number.");
-		}
-		if (data == null) {
-			throw new NullPointerException("The parameter [data] is NULL.");
-		}
 		this.dimension = dimension;
 		this.data = data;
 		this.time = time;

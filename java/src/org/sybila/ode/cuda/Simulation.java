@@ -27,7 +27,7 @@ public class Simulation implements org.sybila.ode.Simulation
 			throw new IllegalArgumentException("The size of vector has to be a positive number.");
 		}
 		if (length < 0) {
-			throw new IllegalArgumentException("The lenght of the simulation has to be a non negative number.");
+			throw new IllegalArgumentException("The lenght of the simulation has to be a non negative number: " + length + ".");
 		}
 		if (id < 0) {
 			throw new IllegalArgumentException("The simulation ID has to be a non negative number.");

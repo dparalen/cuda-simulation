@@ -5,8 +5,12 @@ import java.util.List;
 import org.sybila.ode.MultiAffineFunction;
 import org.sybila.ode.Simulation;
 import org.sybila.ode.SimulationStatus;
+import org.sybila.ode.cpu.CpuSimulationFilter;
+import org.sybila.ode.SimulationFilterGuards;
 
-public class CpuRkf45SimulationLauncher extends AbstractCpuSimulationLauncher {
+public class CpuRkf45SimulationLauncher extends AbstractCpuSimulationLauncher
+	implements org.sybila.ode.SimulationFilteredLauncher
+{
 
 	private static final float A2 = (float) (1.0 / 4.0);
 	private static final float B2 = (float) (1.0 / 4.0);
@@ -41,15 +45,30 @@ public class CpuRkf45SimulationLauncher extends AbstractCpuSimulationLauncher {
 	private static final float MAXIMUM_TIME_STEP = (float) 100;
 	private static final float MINIMUM_SCALAR_TO_OPTIMIZE_STEP = (float) 0.01;
 	private static final float MAXIMUM_SCALAR_TO_OPTIMIZE_STEP = (float) 4.0;
+	private CpuSimulationFilter filter;
 
 	public CpuRkf45SimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function) {
 		super(dimension, maxNumberOfSimulations, maxSimulationSize, function);
+		// dummy filter
+		this.filter = new CpuSimulationFilter();
 	}
 
 	public CpuRkf45SimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function, float minAbsDivergency, float maxAbsDivergency, float minRelDivergency, float maxRelDivergency) {
 		super(dimension, maxNumberOfSimulations, maxSimulationSize, function, minAbsDivergency, maxAbsDivergency, minRelDivergency, maxRelDivergency);
+		// dummy filter
+		this.filter = new CpuSimulationFilter();
 	}
 
+	@Override
+	public void setFilterGuards(SimulationFilterGuards guards)
+	{
+		this.filter = new CpuSimulationFilter(guards);
+	}
+	@Override
+	public SimulationFilterGuards getFilterGuards()
+	{
+		return this.filter.getGuards();
+	}
 	@Override
 	protected Simulation simulate(int simulationId, float time, float timeStep, float targetTime, float[] vectors, int numberOfSimulations) {
 
@@ -151,8 +170,10 @@ public class CpuRkf45SimulationLauncher extends AbstractCpuSimulationLauncher {
 				currentTime += myStep;
 				previous = new Point(getDimension(), currentTime, data);
 				if (currentTime >= (position + 1) * timeStep) {
-					position++;
-					points.add(previous);
+					if (this.filter.pass(previous)) {
+						position++;
+						points.add(previous);
+				}
 				}
 				if (error < getMinAbsDivergency()) {
 					myStep *= 2;

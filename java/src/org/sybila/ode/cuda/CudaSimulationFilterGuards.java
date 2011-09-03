@@ -14,11 +14,22 @@ import jcuda.runtime.cudaPointerAttributes;
 
 public class CudaSimulationFilterGuards {
 	/* filter implementation/container for CUDA */
-	private cudaStream_t		stream;
-	public CUdeviceptr		guards;
-	public CUdeviceptr		guardsIndexes;	
-	public int			guardsLength;
-	private int			dimension;
+	private cudaStream_t stream;
+	public CUdeviceptr guards;
+	public CUdeviceptr guardsIndexes;
+	public int guardsLength;
+	private int dimension;
+
+	public CudaSimulationFilterGuards () {
+		/* for no filtering case---quite a hack, though */
+		float[] eGuards;
+		int[] eGuardsIndexes;
+		eGuards = new float[1];
+		eGuardsIndexes = new int[1];
+		initGuards(eGuards);
+		initGuardsIndexes(eGuardsIndexes);
+		this.guardsLength = 0;
+	}
 
 	public CudaSimulationFilterGuards (
 		int dimension,

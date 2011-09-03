@@ -5,7 +5,7 @@
 #define B3 (3.0/32.0)
 #define C3 (9.0/32.0)
 
-#define	A4 (12.0/13.0)
+#define A4 (12.0/13.0)
 #define B4 (1932.0/2197.0)
 #define C4 (-7200.0/2197.0)
 #define D4 (7296.0/2197.0)
@@ -43,6 +43,7 @@
 #define STATUS_TIMEOUT 1
 #define STATUS_PRECISION 2
 #include "./num_sim_kernel.h"
+#include "cuPrintf.cu"
 
 
 /* FILTERING
@@ -75,17 +76,17 @@
 #define _LT(a, b) ((a) < (b))
 
 static __device__ __shared__ struct {
-	/* array of vectors (per block) that changed 
+	/* array of vectors (per block) that changed
 	 * threads synchronize the result of particular dimension here
-	*/ 
+	*/
 	/* TODO: figure out how to avoid a constant here */
-	unsigned short	vector[_MAX_CHANGED_VECTORS];
-	unsigned short	dim_old[_MAX_DIM_OLD_RECORDS];
+	unsigned int vector[_MAX_CHANGED_VECTORS];
+	unsigned int dim_old[_MAX_DIM_OLD_RECORDS];
 
-	/* assorted config stuff */ 
+	/* assorted config stuff */
 	struct {
-		size_t 	simulations_per_block;
-		size_t 	dimensions;
+		int simulations_per_block;
+		int dimensions;
 	} config;
 
 } FILTER_CHECKED_VECTORS;
@@ -111,9 +112,9 @@ static __device__ __shared__ struct {
 	_FILTER_CHECKED_VECTOR(simulation_id)
 
 
-/* the begin index of a dimension's guards 
+/* the begin index of a dimension's guards
  * dimension_id == _ID_IN_BLOCK % dimensions
- * begin index == 2d, d is a dimension's index 
+ * begin index == 2d, d is a dimension's index
 */
 #define _FILTER_GUARD_DIM_BEGIN(guards_indexes) \
 	(guards_indexes[2 * \
@@ -132,14 +133,22 @@ static __device__ __shared__ struct {
 	(_FILTER_GUARD_DIM_END(guards_indexes) >= (i)))
 
 /* initialize VECTOR FILTER; on-device part */
+
+static __device__ void
+filterReset (
+		const float vectentry,
+		const float* guards,
+		const int guards_len,
+		const int* guards_indexes) {
+
 static __device__ void
 filterInitSharedStuff (
 	const float vectentry,
-	const size_t dimensions,
-	const size_t simulations_per_block,
+	const int dimensions,
+	const int simulations_per_block,
 	const float* guards,
-	const size_t guards_len,
-	const size_t* guards_indexes
+	const int guards_len,
+	const int* guards_indexes
 ){
 	/* for threads within the vector--block size range,
 	 * init vector change state in order not
@@ -160,7 +169,7 @@ filterInitSharedStuff (
 		 * based on a comparision with the initial vector
 		*/
 
-		for (register size_t i = 0; i < guards_len; i++) {
+		for (register int i = 0; i < guards_len; i++) {
 			if( _FILTER_IDX_IN_DIMENSION_GUARDS(i, guards_indexes) ){
 				/* in case the dimension fits, initialize */
 				_FILTER_DIM_OLD_VALUE |= guards[i] > \
@@ -184,36 +193,36 @@ filterInitSharedStuff (
  *   - each thread computes a separate dimension
  *   - the "old" state is computed in a one shot togeter with change checking
 */
-static void __device__ 
+static void __device__
 filterVectorEntryCheck (
 	/* the simulation vector entry */
 	const float
 		vectentry,
 
 	/* the vector field being calculated by this thread */
-	const size_t
+	const int
 		dimension_id,
 
 	/* the index of a simulation trace being computed */
-	const size_t
+	const int
 		simulation_index,
 
 	/* the guard values to check */
 	const float*
 		guards,
 
-	const size_t
+	const int
 		guards_len,
 
 	/* the indexes of the guards array, tere is always
 	 * 2*dimensions of elements here
 	*/
-	const size_t*
+	const int*
 		guards_indexes
 ){
 
 	register unsigned short ret = false;
-	register size_t		i = 0;
+	register int		i = 0;
 
 	/* even though the cycle goes trough other dimensions' guards
 	 * it has the benefit of the threads are kept in sync
@@ -282,15 +291,15 @@ void __global__ rkf45_kernel(
 	const int*	function_factors,
 	const int*	function_factor_indexes,
 
-	/* float values of particular guards; 
+	/* float values of particular guards;
 	 * each dimension has a continuous "slot"
 	*/
 	const float*	guards,
-	const size_t	guards_len,
+	const int	guards_len,
 	/* begin and end index of each dimension slot is stored for
 	 * each dimension, i.e. there is 2*dimensions elements here
 	 */
-	const size_t* 	guards_indexes,
+	const int* 	guards_indexes,
 
 	float* 		result_points,
 	float*		result_times,
@@ -324,7 +333,7 @@ void __global__ rkf45_kernel(
 	__syncthreads();
 
 	// reset number of executed steps and set the default time step
-	number_of_executed_steps[simulation_id] = 0;	
+	number_of_executed_steps[simulation_id] = 0;
 	float h = time_step;
 
 	// set current time and position
@@ -358,13 +367,13 @@ void __global__ rkf45_kernel(
 		vector[dimension_id] = dim_value + B3 * k1 + C3 * k2;
 		__threadfence_block();
 		__syncthreads();
-		ode_function(current_time + A3 * h, vector, dimension_id, vector_size, function_coefficients, function_coefficient_indexes, function_factors, function_factor_indexes, &k3);		
+		ode_function(current_time + A3 * h, vector, dimension_id, vector_size, function_coefficients, function_coefficient_indexes, function_factors, function_factor_indexes, &k3);
 		k3 = k3 * h;
 		// K4
 		vector[dimension_id] = dim_value + B4 * k1 + C4 * k2 + D4 * k3;
 		__threadfence_block();
 		__syncthreads();
-		ode_function(current_time + A4 * h, vector, dimension_id, vector_size, function_coefficients, function_coefficient_indexes, function_factors, function_factor_indexes, &k4);		
+		ode_function(current_time + A4 * h, vector, dimension_id, vector_size, function_coefficients, function_coefficient_indexes, function_factors, function_factor_indexes, &k4);
 		k4 = k4 * h;
 		// K5
 		vector[dimension_id] = dim_value + B5 * k1 + C5 * k2 + D5 * k3 + E5 * k4;
@@ -374,7 +383,7 @@ void __global__ rkf45_kernel(
 		k5 = k5 * h;
 		// K6
 		vector[dimension_id] = dim_value + B6 * k1 + C6 * k2 + D6 * k3 + E6 * k4 + F6 * k5;
-		__threadfence_block();	
+		__threadfence_block();
 		__syncthreads();
 		ode_function(current_time + A6 * h, vector, dimension_id, vector_size, function_coefficients, function_coefficient_indexes, function_factors, function_factor_indexes, &k6);
 		k6 = k6 * h;
@@ -413,9 +422,9 @@ void __global__ rkf45_kernel(
 		else {
 			// result
 			float dim_result = vector[dimension_id] + N1 * k1 + N3 * k3 + N4 * k4 + N5 * k5;
-			// relative error			
+			// relative error
 			float rel_error  = 0;
-			if (max_rel_divergency > 0 || min_rel_divergency > 0) {	
+			if (max_rel_divergency > 0 || min_rel_divergency > 0) {
 				// compute relative error
 				result_points[(simulation_max_size + 1) * vector_size * simulation_id  + vector_size * (position+1) + dimension_id] = abs(my_error/dim_result);
 				__threadfence_block();
@@ -448,9 +457,15 @@ void __global__ rkf45_kernel(
 					__threadfence_block();
 					__syncthreads();
 
-					if ( _FILTER_VECTOR_CHANGED(simulation_id) ) {
+					if(_FILTER_VECTOR_CHANGED(simulation_id) ) {
 						/* save new point only if vector change detected */
 						/* a reduct per all the dimensions --- all threads observe same value */
+						cuPrintf("SI: %d, DI: %d, BI: %d, PI: %d",
+								simulation_id, dimension_id, id_in_block, position
+								+ 1);
+						// reset the filtering --- go to induction base
+						filterInitSharedStuff(vector[dimension_id], vector_size, simulations_per_block,\
+								guards, guards_len, guards_indexes);
 						position++;
 					}
 					vector = &(result_points[(simulation_max_size + 1) * vector_size * simulation_id  + vector_size * position]);
@@ -459,7 +474,7 @@ void __global__ rkf45_kernel(
 						h *= 2;
 						if (h > time_step) h = time_step;
 					}
-				}				
+				}
 			}
 		}
 	}
@@ -500,7 +515,7 @@ void __global__ euler_simple_kernel(
 	if (simulation_id >= number_of_vectors) return;
 
 	// reset number of executed steps and set the default time step
-	number_of_executed_steps[simulation_id] = 0;	
+	number_of_executed_steps[simulation_id] = 0;
 	float h = time_step;
 
 	// set current time and position
@@ -518,7 +533,7 @@ void __global__ euler_simple_kernel(
 
 	// perform the simulation
 	int steps = 0;
-	
+
 	while(steps < max_number_of_steps && current_time < target_time && position < simulation_max_size) {
 		steps++;
 		for(int dim=0; dim<vector_size; dim++) {
@@ -587,7 +602,7 @@ void __global__ euler_kernel(
 	int dimension_id  = id_in_block % vector_size;
 
 	// reset number of executed steps and set the default time step
-	number_of_executed_steps[simulation_id] = 0;	
+	number_of_executed_steps[simulation_id] = 0;
 	float h = time_step;
 
 	// set current time and position
@@ -602,7 +617,7 @@ void __global__ euler_kernel(
 
 	// perform the simulation
 	int steps = 0;
-	while(steps < max_number_of_steps && current_time < target_time && position < simulation_max_size) {	
+	while(steps < max_number_of_steps && current_time < target_time && position < simulation_max_size) {
 		__threadfence_block();
 		__syncthreads();
 		steps++;

@@ -46,7 +46,9 @@
 				<path refid="classpath"/>
 			</classpath>
 			<batchtest fork="yes">
-				<fileset dir="${tests.build.dir}" includes="**/*Test.class" excludes="**/Abstract*"/>
+				<!--fileset dir="${tests.build.dir}" includes="**/*Test.class" excludes="**/Abstract*"/-->
+				<!--fileset dir="${tests.build.dir}" includes="**/CudaRkf45SimulationLauncherTest.class" excludes="**/Abstract*" /-->
+				<fileset dir="${tests.build.dir}" includes="**/CpuRkf45Simulation*LauncherTest.class" excludes="**/Abstract*" />
 			</batchtest>
 		</junit>
 	</target>
