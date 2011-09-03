@@ -1,37 +1,24 @@
 package org.sybila.ode.cpu;
 
 public class CpuSimulationFilterGuards
+	// a stub
 	extends org.sybila.ode.AbstractSimulationFilterGuards
 	implements org.sybila.ode.SimulationFilterGuards
 {
-	public CpuSimulationFilterGuards ()
+	public CpuSimulationFilterGuards (int dimension)
 	{
-		super();
+		super(dimension);
 	}
 	public CpuSimulationFilterGuards (
 			int dimension,
 			float[] guards,
-			int[] guardsIndexes
+			int[] guardIndexes
 			)
 	{
-		super(dimension, guards, guardsIndexes);
+		super(dimension, guards, guardIndexes);
 	}
 	public CpuSimulationFilterGuards(org.sybila.ode.SimulationFilterGuards guards)
 	{
 		super(guards.getDimension(), guards.getGuards(), guards.getGuardIndexes());
-	}
-	public float[] getDimensionGuards(int dimensionId)
-		throws ArrayIndexOutOfBoundsException
-	{
-		guardsIndexes = this.getGuardIndexes();
-		guards = this.getGuards();
-		int begin = guardsIndexes[2 * dimensionId];
-		int end = guardsIndexes[2 * dimensionId + 1];
-		float[] ret = new float[end - begin + 1];
-		for(int i = begin; i <= end; i++){
-			//System.out.println("b: " + begin + ", e: " + end);
-			ret[i - begin] = guards[i];
-		}
-		return ret;
 	}
 }

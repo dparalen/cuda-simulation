@@ -7,11 +7,11 @@ public class CpuSimulationFilter
 	private Point oldPoint;
 	private int dimension;
 
-	public CpuSimulationFilter()
+	public CpuSimulationFilter(int dimension)
 	// empty filter case
 	{
-		this.guards = new CpuSimulationFilterGuards();
-		this.dimension = this.guards.getDimension();
+		this.guards = new CpuSimulationFilterGuards(dimension);
+		this.dimension = dimension;
 		this.reset();
 	}
 	public CpuSimulationFilter(CpuSimulationFilterGuards guards)

@@ -6,4 +6,6 @@ public interface SimulationFilterGuards
 	public int[] getGuardIndexes();
 	public int getDimension();
 	public boolean empty();
+	public float[] getDimensionGuards(int dimensionId);
+	public void setDimensionGuards(int dimensionId, float[] guards);
 }

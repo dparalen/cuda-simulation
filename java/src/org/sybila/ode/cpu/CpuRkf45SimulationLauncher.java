@@ -50,13 +50,13 @@ public class CpuRkf45SimulationLauncher extends AbstractCpuSimulationLauncher
 	public CpuRkf45SimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function) {
 		super(dimension, maxNumberOfSimulations, maxSimulationSize, function);
 		// dummy filter
-		this.filter = new CpuSimulationFilter();
+		this.filter = new CpuSimulationFilter(dimension);
 	}
 
 	public CpuRkf45SimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function, float minAbsDivergency, float maxAbsDivergency, float minRelDivergency, float maxRelDivergency) {
 		super(dimension, maxNumberOfSimulations, maxSimulationSize, function, minAbsDivergency, maxAbsDivergency, minRelDivergency, maxRelDivergency);
 		// dummy filter
-		this.filter = new CpuSimulationFilter();
+		this.filter = new CpuSimulationFilter(dimension);
 	}
 
 	@Override
