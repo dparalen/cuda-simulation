@@ -35,7 +35,8 @@ public abstract class AbstractSimulationFilterGuards
 			if ((guardIndexes[2 * i] < 0 || guardIndexes[2 * i] >= guards.length) ||
 					(guardIndexes[2 * i + 1] < 0) ||
 					(guardIndexes [ 2 * i + 1 ] >= guards.length)) {
-				throw new ArrayIndexOutOfBoundsException ("GuardsIndexes out of range");
+				//throw new ArrayIndexOutOfBoundsException ("GuardsIndexes out of range");
+				;
 			}
 		}
 		this.guards = guards;
@@ -71,6 +72,8 @@ public abstract class AbstractSimulationFilterGuards
 		// get a list of guards of a particular dimension ID
 		throws ArrayIndexOutOfBoundsException
 	{
+		// FIXME: System.out.println("Getting guards: " + dimensionId);
+		// FIXME: System.out.println(this.toString());
 		int begin = dimGuardsBegin(dimensionId);
 		int end = dimGuardsEnd(dimensionId);
 		float[] ret = new float[end - begin + 1];
@@ -83,33 +86,56 @@ public abstract class AbstractSimulationFilterGuards
 		// throws "ArrayOut..." in case wrong dimensionId provided
 		throws ArrayIndexOutOfBoundsException
 	{
-		int j = 0; // outside of the inner loop to be accessible elsewhere
-		float[] newGuards = new float[this.guards.length + guards.length];
+		// FIXME: System.out.println(this.toString());
+		int l = 0; // the last index
+		int begin = dimGuardsBegin(dimensionId);
+		int end = dimGuardsEnd(dimensionId);
+		// create new array of appropriate length
+		float[] newGuards = new float[this.guards.length - (end - begin + 1) + guards.length];
 		for(int i = 0; i < dimensionId; i++) {
 			// go through "previous" dimensions copying elements to a new
 			// guards array
-			int begin = dimGuardsBegin(i);
-			int end = dimGuardsEnd(i);
-			for (j = begin; j <= end; j++) {
+			begin = dimGuardsBegin(i);
+			end = dimGuardsEnd(i);
+			for (int j = begin; j <= end; j++, l++) {
 				newGuards[j] = this.guards[j];
 			}
 		}
 		// the dimension being updated starts here
-		this.guardIndexes[2 * dimensionId] = j;
-		this.guardIndexes[2 * dimensionId + 1] = j + guards.length;
-		for(int k = j; j <= k + guards.length; j++) {
+		this.guardIndexes[2 * dimensionId] = l;
+		this.guardIndexes[2 * dimensionId + 1] = l + guards.length - 1;
+		for(int j = l; l < j + guards.length; l++) {
 			// copy new dimension guards
-			newGuards[j] = guards[j - k];
+			newGuards[l] = guards[l - j];
 		}
 		for(int i = dimensionId + 1; i < this.dimension; i++) {
 			// copy the rest of the dimension guards to the new array
-			int begin = dimGuardsBegin(i);
-			int end = dimGuardsEnd(i);
-			for (j = begin; j <= end; j++) {
-				newGuards[j] = this.guards[j];
+			// "shifting" the indexes
+			begin = dimGuardsBegin(i);
+			end = dimGuardsEnd(i);
+			this.guardIndexes[2 * i] = l;
+			this.guardIndexes[2 * i + 1] = l + (end - begin);
+			for (int j = begin; j <= end; j++, l++) {
+				newGuards[l] = this.guards[j];
 			}
 		}
 		this.guards = newGuards;
+		// FIXME: System.out.println(this.toString());
+	}
+	public String toString() {
+		String ret = new String("Length: " + this.guards.length);
+		for (int k = 0; k < this.dimension; k++) {
+			ret += "\n  " + k + ": " + this.guardIndexes[2 * k] + "," + this.guardIndexes[2 * k + 1];
+			int begin = dimGuardsBegin(k);
+			int end = dimGuardsEnd(k);
+			if (begin <= end) {
+				ret += "\n    ";
+				for (int l = begin; l <= end; l++) {
+					ret += this.guards[l] + ", ";
+				}
+			}
+		}
+		return ret;
 	}
 	public void reset(){
 		// sets all indexes and guards so as no guards in any dimension are

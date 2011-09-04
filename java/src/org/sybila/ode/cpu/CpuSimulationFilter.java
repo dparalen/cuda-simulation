@@ -80,4 +80,10 @@ public class CpuSimulationFilter
 	{
 		 return this.guards;
 	}
+	public void setGuards(CpuSimulationFilterGuards guards)
+	{
+		this.guards = guards;
+		this.dimension = guards.getDimension();
+		this.reset();
+	}
 }
