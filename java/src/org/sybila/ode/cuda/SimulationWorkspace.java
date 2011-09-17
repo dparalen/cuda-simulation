@@ -13,81 +13,41 @@ import jcuda.driver.*;
 
 public class SimulationWorkspace {
 
-	private MultiAffineFunction function;
+	protected MultiAffineFunction function;
 
-	private boolean initialized = false;
+	protected boolean initialized = false;
 
-	private int maxSimulationSize;
+	protected int maxSimulationSize;
 
-	private int maxNumberOfSimulations;
+	protected int maxNumberOfSimulations;
 
-	private int dimension;
+	protected int dimension;
 
-	private cudaStream_t stream;
+	protected cudaStream_t stream;
 
-	private CUdeviceptr functionCoefficients;
+	protected CUdeviceptr functionCoefficients;
 
-	private CUdeviceptr functionCoefficientIndexes;
+	protected CUdeviceptr functionCoefficientIndexes;
 
-	private CUdeviceptr functionFactors;
+	protected CUdeviceptr functionFactors;
 
-	private CUdeviceptr functionFactorIndexes;
+	protected CUdeviceptr functionFactorIndexes;
 
-	private CUdeviceptr vectors;
+	protected CUdeviceptr vectors;
 
-	private CUdeviceptr resultPoints;
+	protected CUdeviceptr resultPoints;
 
-	private CUdeviceptr resultTimes;
+	protected CUdeviceptr resultTimes;
 
-	private CUdeviceptr returnCodes;
+	protected CUdeviceptr returnCodes;
 
-	private CUdeviceptr executedSteps;
+	protected CUdeviceptr executedSteps;
 
-	private CudaSimulationFilterGuards	guards;
+	protected CudaSimulationFilterGuards	guards;
 
-	private CUcontext cudaContext;
+	protected CUcontext cudaContext;
 
-	private CUdevice cudaDevice;
-
-
-	private void initTestGuards() {
-		float[] 	guards, emptyGuards;
-		int[]		guardsIndexes, emptyIndexes;
-
-		guards = new float[5];
-		guards[0] = 1.00f;
-		guards[1] = 1.01f;
-		guards[2] = 1.03f;
-		guards[3] = 1.04f;
-		guards[4] = 1.05f;
-
-		guardsIndexes = new int[20]; /* just two dimensions, though */
-		guardsIndexes[0] = 0;
-		guardsIndexes[1] = 0;
-		guardsIndexes[2] = 0;
-		guardsIndexes[3] = 2;
-		guardsIndexes[4] = 3; /* in 3rd dimension, guards start at 3rd and end at 4th index */
-		guardsIndexes[5] = 4;
-		guardsIndexes[6] = 0;
-		guardsIndexes[7] = 0;
-		guardsIndexes[8] = 0;
-		guardsIndexes[9] = 0;
-		guardsIndexes[10] = 0;
-		guardsIndexes[11] = 0;
-		guardsIndexes[12] = 0;
-		guardsIndexes[13] = 0;
-		guardsIndexes[14] = 0;
-		guardsIndexes[15] = 0;
-		guardsIndexes[16] = 0;
-		guardsIndexes[17] = 0;
-		guardsIndexes[18] = 0;
-		guardsIndexes[19] = 0;
-		emptyGuards = new float [0];
-		emptyIndexes = new int [0];
-
-		this.guards = new CudaSimulationFilterGuards(this.dimension, guards, guardsIndexes, this.stream);
-		//this.guards = new CudaSimulationFilterGuards();
-	}
+	protected CUdevice cudaDevice;
 
 	private void initDevice() {
 		/* initialize the CUDA system 
@@ -131,8 +91,6 @@ public class SimulationWorkspace {
 
 		initDevice();	
 		
-		/* TODO: hardcoded stuff here */
-		initTestGuards();
 	}
 
 	public Pointer getDeviceExecutedSteps() {
@@ -283,7 +241,7 @@ public class SimulationWorkspace {
 		copyHostToDevice(functionFactorIndexes, Pointer.to(function.getFactorIndexes()), function.getFactorIndexes().length * Sizeof.INT);
 	}
 
-	private void copyDeviceToHost(Pointer hostPointer, Pointer devicePointer, int size) {
+	protected void copyDeviceToHost(Pointer hostPointer, Pointer devicePointer, int size) {
 		if (stream == null) {
 			JCuda.cudaMemcpy(hostPointer, devicePointer, size, cudaMemcpyKind.cudaMemcpyDeviceToHost);
 		}
@@ -296,7 +254,7 @@ public class SimulationWorkspace {
 		}
 	}
 
-	private void copyHostToDevice(Pointer devicePointer, Pointer hostPointer, int size) {
+	protected void copyHostToDevice(Pointer devicePointer, Pointer hostPointer, int size) {
 		if (stream == null) {
 			JCuda.cudaMemcpy(devicePointer, hostPointer, size, cudaMemcpyKind.cudaMemcpyHostToDevice);
 		}
@@ -309,7 +267,7 @@ public class SimulationWorkspace {
 		}
 	}
 
-	private void copyHostToDeviceConstant(String deviceConstant, Pointer hostPointer, int size, int offset) {
+	protected void copyHostToDeviceConstant(String deviceConstant, Pointer hostPointer, int size, int offset) {
 		if (stream == null) {
 			JCuda.cudaMemcpyToSymbol(deviceConstant, hostPointer, size, offset, cudaMemcpyKind.cudaMemcpyHostToDevice);
 		}
@@ -322,13 +280,13 @@ public class SimulationWorkspace {
 		}
 	}
 
-	private static void printArray(int[] array) {
+	protected static void printArray(int[] array) {
 		for (int i=0; i<array.length; i++) {
 			System.out.println(array[i]);
 		}
 	}
 
-	private static void printArray(float[] array) {
+	protected static void printArray(float[] array) {
 		for (int i=0; i<array.length; i++) {
 			System.out.println(array[i]);
 		}

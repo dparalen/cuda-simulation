@@ -10,7 +10,7 @@ import org.sybila.ode.SimulationFilterGuards;
 public interface SimulationFilteredLauncher
 {
 	/**
-	 * It returns a set of simulations genereted order to the given parameters.
+	 * It returns a set of simulations generated order to the given parameters.
 	 *
 	 * @param time the time when the simulations (trajectories) are starting
 	 * @param timeStep the maximum time step which the point differs from the previous one

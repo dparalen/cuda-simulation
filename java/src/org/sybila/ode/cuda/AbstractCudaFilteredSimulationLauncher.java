@@ -4,23 +4,26 @@ import jcuda.runtime.cudaStream_t;
 import jcuda.utils.KernelLauncher;
 import org.sybila.ode.AbstractSimulationLauncher;
 import org.sybila.ode.MultiAffineFunction;
+import org.sybila.ode.SimulationFilteredLauncher;
+import org.sybila.ode.SimulationFilterGuards;
 
-abstract public class AbstractCudaSimulationLauncher extends AbstractSimulationLauncher
+abstract public class AbstractCudaFilteredSimulationLauncher extends AbstractSimulationLauncher
+implements SimulationFilteredLauncher
 {
 
 	protected static final int BLOCK_SIZE = 32;
 
 	protected static final int MAX_NUMBER_OF_THREADS_IN_BLOCK = 512;
 
-	private SimulationWorkspace workspace;
+	private SimulationFilteredWorkspace workspace;
 
 	private cudaStream_t stream;
 
-	public AbstractCudaSimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function) {
+	public AbstractCudaFilteredSimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function) {
 		super(dimension, maxNumberOfSimulations, maxSimulationSize, function);
 	}
 
-	public AbstractCudaSimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function, float minAbsDivergency, float maxAbsDivergency, float minRelDivergency, float maxRelDivergency) {
+	public AbstractCudaFilteredSimulationLauncher(int dimension, int maxNumberOfSimulations, int maxSimulationSize, MultiAffineFunction function, float minAbsDivergency, float maxAbsDivergency, float minRelDivergency, float maxRelDivergency) {
 		super(dimension, maxNumberOfSimulations, maxSimulationSize, function, minAbsDivergency, maxAbsDivergency, minRelDivergency, maxRelDivergency);
 		if (dimension > 100) {
 			throw new IllegalArgumentException("The dimension can't be greater than 100.");
@@ -65,6 +68,9 @@ abstract public class AbstractCudaSimulationLauncher extends AbstractSimulationL
 			getWorkspace().getDeviceFunctionCoefficientIndexes(),
 			getWorkspace().getDeviceFunctionFactors(),
 			getWorkspace().getDeviceFunctionFactorIndexes(),
+			getWorkspace().getGuards(),
+			getWorkspace().getGuardsLength(),
+			getWorkspace().getGuardIndexes(),
 			getWorkspace().getDeviceResultPoints(),
 			getWorkspace().getDeviceResultTimes(),
 			getWorkspace().getDeviceExecutedSteps(),
@@ -93,11 +99,30 @@ abstract public class AbstractCudaSimulationLauncher extends AbstractSimulationL
 		return stream;
 	}
 
-	protected SimulationWorkspace getWorkspace() {
+	protected SimulationFilteredWorkspace getWorkspace() {
 		if (workspace == null) {
-			workspace = new SimulationWorkspace(getDimension(), getMaxNumberOfSimulations(), getMaxSimulationSize(), getFunction());
+			workspace = new 
+				SimulationFilteredWorkspace(
+						getDimension(),
+						getMaxNumberOfSimulations(),
+						getMaxSimulationSize(),
+						getFunction());
 		}
 		return workspace;
+	}
+	public void setFilterGuards(SimulationFilterGuards guards) {
+		SimulationFilteredWorkspace workspace = this.getWorkspace();
+		workspace.setGuards(guards.getGuards());
+		workspace.setGuardIndexes(guards.getGuardIndexes());
+	}
+	public SimulationFilterGuards getFilterGuards() {
+		SimulationFilteredWorkspace workspace = this.getWorkspace();
+		SimulationFilterGuards guards = new 
+				CudaSimulationFilterGuards(
+						workspace.getDimension(),
+						workspace.getHostGuards(),
+						workspace.getHostGuardIndexes());
+		return guards;
 	}
 
 	abstract protected String getKernelFile();
