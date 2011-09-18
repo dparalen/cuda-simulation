@@ -9,9 +9,7 @@
 	<property name="main.class" value="org.sybila.ode.benchmark.Main" />
 
 	<path id="classpath">
-		<dirset dir="${libs.jcuda.dir}"/>
-		<fileset dir="${libs.jcuda.dir}" includes="*.jar"/>
-		<fileset dir="${libs.dir}" includes="*.jar"/>
+		<fileset dir="${libs.dir}" includes="**/*.jar"/>
 		<dirset dir="${java.build.dir}"/>
 		<dirset dir="${tests.build.dir}"/>
 	</path>
