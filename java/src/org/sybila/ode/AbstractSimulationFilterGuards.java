@@ -86,7 +86,7 @@ public abstract class AbstractSimulationFilterGuards
 		// throws "ArrayOut..." in case wrong dimensionId provided
 		throws ArrayIndexOutOfBoundsException
 	{
-		// FIXME: System.out.println(this.toString());
+		System.out.println(this.toString());
 		int l = 0; // the last index
 		int begin = dimGuardsBegin(dimensionId);
 		int end = dimGuardsEnd(dimensionId);
@@ -120,7 +120,7 @@ public abstract class AbstractSimulationFilterGuards
 			}
 		}
 		this.guards = newGuards;
-		// FIXME: System.out.println(this.toString());
+		System.out.println(this.toString());
 	}
 	public String toString() {
 		String ret = new String("Length: " + this.guards.length);

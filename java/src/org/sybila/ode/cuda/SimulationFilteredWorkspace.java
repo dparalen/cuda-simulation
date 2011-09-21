@@ -8,7 +8,7 @@ import jcuda.runtime.JCuda;
 import jcuda.runtime.cudaStream_t;
 
 public class SimulationFilteredWorkspace extends SimulationWorkspace {
-
+	/* the guards and guardIndexes mustn't be null; sad that not everything is transparent */
 	protected CUdeviceptr guards = null;
 	protected int guardsLength = 0;
 	
@@ -30,23 +30,23 @@ public class SimulationFilteredWorkspace extends SimulationWorkspace {
 	}
 
 	private void destroyGuards() throws jcuda.CudaException {
-		if (this.guardIndexes != null) {
-			JCuda.cudaFree(guardIndexes);
-			this.guardIndexes = null;
-			this.guardIndexesLength = 0;
-		}
-	}
-	
-	private void destroyGuardIndexes(){
 		if (this.guards != null) {
 			JCuda.cudaFree(guards);
 			this.guards = null;
 			this.guardsLength = 0;
 		}
 	}
+	
+	private void destroyGuardIndexes(){
+		if (this.guardIndexes != null) {
+			JCuda.cudaFree(guardIndexes);
+			this.guardIndexes = null;
+			this.guardIndexesLength = 0;
+		}
+	}
 	public void setGuards(float[] guards) throws jcuda.CudaException {
 		destroyGuards();
-		this.guards			= new CUdeviceptr();
+		this.guards = new CUdeviceptr();
 		this.guardsLength = guards.length;
 		JCuda.cudaMalloc(this.guards, this.guardsLength * Sizeof.FLOAT);
 		copyHostToDevice(this.guards, Pointer.to(guards), this.guardsLength * Sizeof.FLOAT);

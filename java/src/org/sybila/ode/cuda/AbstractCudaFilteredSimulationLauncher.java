@@ -50,6 +50,9 @@ implements SimulationFilteredLauncher
 		int gridDim = (int) Math.ceil(Math.sqrt((float) numberOfSimulations / blockDim));
 		launcher.setGridSize(gridDim, gridDim);
 		launcher.setBlockSize(blockDim, getWorkspace().getDimension(), 1);
+		System.out.println(getWorkspace().getGuards());
+		System.out.println(getWorkspace().getGuardsLength());
+		System.out.println(getWorkspace().getGuardIndexes());
 		launcher.call(
 			time,
 			timeStep,

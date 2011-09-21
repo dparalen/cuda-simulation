@@ -176,6 +176,15 @@ public class SimulationWorkspace {
 		copyDeviceToHost(Pointer.to(returnCodesHost), returnCodes, numberOfSimulations * Sizeof.INT);
 		copyDeviceToHost(Pointer.to(simulationTimesHost), resultTimes, simulationTimesHost.length * Sizeof.FLOAT);
 		copyDeviceToHost(Pointer.to(simulationPointsHost), resultPoints, numberOfSimulations * maxSimulationSize * dimension * Sizeof.FLOAT);
+		for (int i = 0; i < numberOfSimulations; i++) {
+			System.out.println(returnCodesHost[i]);
+			if (returnCodesHost[i] < 3) {
+				System.out.println("---------------------------->");
+				for (int j = i * maxSimulationSize * dimension; j < (i+1) * maxSimulationSize * dimension; j++) {
+					System.out.println(simulationPointsHost[j]);
+				}
+			}
+		}
 
 //		printArray(numberOfExecutedStepsHost);
 		return new SimulationResult(numberOfSimulations, dimension, numberOfExecutedStepsHost, returnCodesHost, simulationTimesHost, simulationPointsHost);

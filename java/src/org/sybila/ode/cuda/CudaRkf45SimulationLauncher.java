@@ -3,7 +3,7 @@ package org.sybila.ode.cuda;
 import java.io.File;
 import org.sybila.ode.MultiAffineFunction;
 
-public class CudaRkf45SimulationLauncher extends AbstractCudaSimulationLauncher
+public class CudaRkf45SimulationLauncher extends AbstractCudaFilteredSimulationLauncher
 {
 
 	private static final String KERNEL_FILE = "c" + File.separator + "build" + File.separator + "num_sim_kernel.cubin";
